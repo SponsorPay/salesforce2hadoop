@@ -45,14 +45,21 @@ class SalesforceService(connection: PartnerConnection)  {
 }
 
 object SalesforceService {
-  def apply(username: String, password: String, apiVersion: String = "37.0") = {
+  def apply(username: String, password: String, useSandbox: Boolean = true, apiVersion: String = "37.0") = {
     val config = new ConnectorConfig()
     config.setUsername(username)
     config.setPassword(password)
-    config.setAuthEndpoint(s"https://login.salesforce.com/services/Soap/u/$apiVersion")
+    config.setAuthEndpoint(authEndpointUrl(useSandbox, apiVersion))
 
     val conn = Connector.newConnection(config)
     conn.setQueryOptions(2000)
     new SalesforceService(conn)
   }
+
+  private def authEndpointUrl(useSandbox: Boolean, apiVersion: String): String =
+    if(useSandbox) {
+      s"https://test.salesforce.com/services/Soap/u/$apiVersion"
+    } else {
+      s"https://login.salesforce.com/services/Soap/u/$apiVersion"
+    }
 }

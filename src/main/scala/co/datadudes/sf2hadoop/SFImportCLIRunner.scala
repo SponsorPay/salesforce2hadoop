@@ -12,6 +12,7 @@ object SFImportCLIRunner extends App with LazyLogging {
   case class Config(command: String = "",
                     sfUsername: String = "",
                     sfPassword: String = "",
+                    useSandbox: Boolean = false,
                     datasetBasePath: String = "",
                     sfWSDL: File = new File("."),
                     stateFile: URI = new URI("file://" + System.getProperty("user.home") + "/.sf2hadoop/state"),
@@ -25,6 +26,7 @@ object SFImportCLIRunner extends App with LazyLogging {
     opt[String]('u', "username") required() action { (x, c) => c.copy(sfUsername = x)} text "Salesforce username"
     opt[String]('p', "password") required() action { (x, c) => c.copy(sfPassword = x)} text "Salesforce password"
     opt[String]('b', "basepath") required() action { (x, c) => c.copy(datasetBasePath = x)} text "Datasets basepath"
+    opt[Boolean]("use-sandbox") optional() action { (x, c) => c.copy(useSandbox = x) } text "Indicates whenever sandbox salesforce should be used"
     opt[File]('w', "wsdl") required() valueName "<file>" action { (x, c) => c.copy(sfWSDL = x)} text "Path to Salesforce Enterprise WSDL"
     opt[URI]('s', "state") optional() valueName "<URI>" action { (x, c) => c.copy(stateFile = x)} text "URI to state file to keep track of last updated timestamps"
     arg[String]("<record>...") unbounded() action { (x, c) => c.copy(records = c.records :+ x)} text "List of Salesforce record types to import"
@@ -42,7 +44,7 @@ object SFImportCLIRunner extends App with LazyLogging {
       println("You need to enter a valid command (init|update)")
     } else {
       val schemas = WSDL2Avro.convert(config.sfWSDL.getCanonicalPath, filterSFInternalFields)
-      val connection = SalesforceService(config.sfUsername, config.sfPassword)
+      val connection = SalesforceService(config.sfUsername, config.sfPassword, config.useSandbox)
       val importer = new SFImporter(schemas, config.datasetBasePath, connection)
       val state = new ImportState(config)
       state.createDirs
