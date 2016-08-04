@@ -20,14 +20,28 @@ class SFImporter(recordSchemas: Map[String, Schema],
   def initialImport(recordType: String) = {
     val schema = recordSchemas(recordType)
     val dataset = initializeDataset(datasetUri(recordType), schema)
-    val results = sfConnection.query(buildSFImportQuery(recordType, schema))
+
+    /*
+     * Some of the record fields specified in Enterprise WSDL may not
+     * be visible to user under which data is extracted. If you request such
+     * fields salesforce is going to return an error that some fields do not exist
+     * in the record and you should check your WSDL.
+     * To avoid the issue we query list of fields visible to the current user and use
+     * them to extract data.
+     */
+    val record = sfConnection.describeObject(recordType)
+
+    val fieldNames = record.map(_.getName)
+    val results = sfConnection.query(buildSFImportQuery(recordType, fieldNames))
     storeSFRecords(results, dataset)
   }
 
   def incrementalImport(recordType: String, from: Calendar, until: Calendar) = {
     val schema = recordSchemas(recordType)
     val dataset = loadAndUpdateDataset(datasetUri(recordType), schema)
-    val fieldList = getFieldNames(schema).mkString(",")
+    val record = sfConnection.describeObject(recordType)
+
+    val fieldList = record.map(_.getName).mkString(",")
     val results = sfConnection.getUpdated(recordType, fieldList, from, until)
     storeSFRecords(results, dataset)
   }
@@ -42,8 +56,8 @@ class SFImporter(recordSchemas: Map[String, Schema],
     writer.close()
   }
 
-  private def buildSFImportQuery(recordType: String, schema: Schema): String = {
-    val fieldList = getFieldNames(schema).mkString(",")
+  private def buildSFImportQuery(recordType: String, fields: Seq[String]): String = {
+    val fieldList = fields.mkString(",")
     s"SELECT $fieldList FROM $recordType ORDER BY CreatedDate DESC"
   }
 

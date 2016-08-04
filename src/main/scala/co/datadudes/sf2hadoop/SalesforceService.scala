@@ -6,9 +6,11 @@ import com.sforce.soap.partner.Connector
 import com.sforce.soap.partner.sobject.SObject
 import com.sforce.ws.ConnectorConfig
 import com.sforce.soap.partner.PartnerConnection
+import com.sforce.soap.partner.Field
 
 class SalesforceService(connection: PartnerConnection)  {
-
+  def describeObject(objectName: String): Array[Field] =
+    connection.describeSObject(objectName).getFields
 
   def query(q: String) = new Iterator[SObject] {
 
