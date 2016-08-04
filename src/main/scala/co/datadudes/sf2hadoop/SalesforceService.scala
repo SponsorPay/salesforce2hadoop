@@ -45,7 +45,7 @@ class SalesforceService(connection: PartnerConnection)  {
 }
 
 object SalesforceService {
-  def apply(username: String, password: String, apiVersion: String = "32.0") = {
+  def apply(username: String, password: String, apiVersion: String = "37.0") = {
     val config = new ConnectorConfig()
     config.setUsername(username)
     config.setPassword(password)
