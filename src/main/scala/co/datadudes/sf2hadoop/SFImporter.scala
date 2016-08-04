@@ -10,6 +10,7 @@ import org.apache.avro.Schema
 import org.apache.avro.generic.GenericRecord
 import org.kitesdk.data.Dataset
 import com.sforce.soap.partner.sobject.SObject
+import com.sforce.soap.partner.Field
 
 class SFImporter(recordSchemas: Map[String, Schema],
                  basePath: String,
@@ -31,7 +32,7 @@ class SFImporter(recordSchemas: Map[String, Schema],
      */
     val record = sfConnection.describeObject(recordType)
 
-    val fieldNames = record.map(_.getName)
+    val fieldNames = fieldsFilteredForFyber(recordType, record).map(_.getName)
     val results = sfConnection.query(buildSFImportQuery(recordType, fieldNames))
     storeSFRecords(results, dataset)
   }
@@ -41,7 +42,7 @@ class SFImporter(recordSchemas: Map[String, Schema],
     val dataset = loadAndUpdateDataset(datasetUri(recordType), schema)
     val record = sfConnection.describeObject(recordType)
 
-    val fieldList = record.map(_.getName).mkString(",")
+    val fieldList = fieldsFilteredForFyber(recordType, record).map(_.getName).mkString(",")
     val results = sfConnection.getUpdated(recordType, fieldList, from, until)
     storeSFRecords(results, dataset)
   }
@@ -63,5 +64,10 @@ class SFImporter(recordSchemas: Map[String, Schema],
 
   private def datasetUri(recordType: String) = s"dataset:$fsBasePath${recordType.toLowerCase}"
 
-
+  private def fieldsFilteredForFyber(recordType: String, record: Array[Field]): Array[Field] =
+    if (recordType == "Account") {
+      record.filter(_.getName != "EU_Country__c")
+    } else {
+      record
+    }
 }
